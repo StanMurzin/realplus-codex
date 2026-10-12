@@ -101,6 +101,60 @@ Primary key: ["AGENT_ID"]
 - `invitations_revoked` — Revoked invitations (current state).  
   expr: `sum(INVITATIONS_REVOKED)`
 
+## buyer_interest  →  `REALPLUS.SEMANTIC.BUYER_INTEREST`
+
+One row per listing with buyer interest today: interested buyers by reason (saved search match, picked, liked, shared, message, appointment), potential buyers and what seller agents were shown. Synonyms: interested buyers, potential buyers, buyer demand for a listing.
+Primary key: ["LISTING_WEB_ID"]
+
+**dimensions**
+
+- `last_signal_date` — Latest interest signal from a buyer.  
+  expr: `LAST_SIGNAL_DATE`
+- `listing_id` — Newest listing with this web id (joins to listings).  
+  expr: `LISTING_ID`
+- `listing_web_id` — Web id of the listing.  
+  expr: `LISTING_WEB_ID`
+
+**facts**
+
+- `buyers_appointment` — Buyers with an appointment for the listing.  
+  expr: `BUYERS_APPOINTMENT`
+- `buyers_liked` — Buyers who liked the listing.  
+  expr: `BUYERS_LIKED`
+- `buyers_messaged` — Buyers with a message about the listing.  
+  expr: `BUYERS_MESSAGED`
+- `buyers_picked` — Buyers whose agent picked the listing for them.  
+  expr: `BUYERS_PICKED`
+- `buyers_saved_search_match` — Interested buyers whose saved search has the listing as a live new match.  
+  expr: `BUYERS_SAVED_SEARCH_MATCH`
+- `buyers_shared` — Buyers the listing was shared with.  
+  expr: `BUYERS_SHARED`
+- `buyers_with_action` — Interested buyers who picked, liked, shared, messaged or booked an appointment.  
+  expr: `BUYERS_WITH_ACTION`
+- `disclosable_buyers` — Interested buyers whose agent allows disclosing them to the listing agent.  
+  expr: `DISCLOSABLE_BUYERS`
+- `interested_buyers` — Distinct active buyers interested in the listing for any reason.  
+  expr: `INTERESTED_BUYERS`
+- `potential_buyers` — Buyers flagged as a potential match for the listing by the buyer-interest job.  
+  expr: `POTENTIAL_BUYERS`
+
+**metrics**
+
+- `badges_shown` — Buyer-interest badges shown to seller agents.  
+  expr: `sum(BADGE_ROWS)`
+- `badge_view_rate_pct` — Badges opened by the seller agent, percent.  
+  expr: `round(100.0 * sum(BADGES_VIEWED) / nullif(sum(BADGE_ROWS), 0), 2)`
+- `buyers_with_action_total` — Buyers who picked, liked, shared, messaged or booked an appointment, summed over listings.  
+  expr: `sum(BUYERS_WITH_ACTION)`
+- `interested_buyer_total` — Interested buyers summed over listings (a buyer interested in two listings counts twice).  
+  expr: `sum(INTERESTED_BUYERS)`
+- `listings_with_buyer_interest` — Listings with at least one interested buyer.  
+  expr: `count_if(INTERESTED_BUYERS > 0)`
+- `median_interested_buyers` — Median interested buyers per listing with interest.  
+  expr: `median(case when INTERESTED_BUYERS > 0 then INTERESTED_BUYERS end)`
+- `potential_buyer_total` — Potential buyers summed over listings.  
+  expr: `sum(POTENTIAL_BUYERS)`
+
 ## collaboration_activity  →  `REALPLUS.SEMANTIC.COLLABORATION_ACTIVITY`
 
 Customer collaboration activity per day: invitations sent, accepted, revoked; comments, notes and external listings added. Real activity ends 2026-06-15 (date of the source copy); the few later rows are test activity. Synonyms: collaboration activity, invitations.
@@ -152,6 +206,37 @@ Primary key: ["ACTIVITY_DATE","ACTION","WHO"]
 
 - `portfolio_actions` — Portfolio actions. Filter who to Customer or Agent; System (new match) is automatic.  
   expr: `sum(ACTIONS)`
+
+## folder_listings  →  `REALPLUS.SEMANTIC.FOLDER_LISTINGS`
+
+Listings in portfolio folders today: custom folders (added by hand or from a saved search) and the system folders Added to Portfolio, Not Assigned to a Folder, Emailed Listings and Removed Listings. Synonyms: listings in folders, portfolio listings, customer portfolio.
+Primary key: -
+
+**dimensions**
+
+- `added_date` — Date the listing entered the folder.  
+  expr: `ADDED_DATE`
+- `add_method` — Added by hand, Saved search match or Portfolio pin.  
+  expr: `ADD_METHOD`
+- `agent_id` — Agent (joins to agents).  
+  expr: `AGENT_ID`
+- `customer_id` — Customer whose portfolio it is; empty for the agent's own portfolio.  
+  expr: `CUSTOMER_ID`
+- `folder_kind` — Custom (agent-made folder) or System (derived from the portfolio).  
+  expr: `FOLDER_KIND`
+- `folder_name` — Custom folder name, or a system folder: Added to Portfolio, Not Assigned to a Folder, Emailed Listings, Removed Listings.  
+  expr: `FOLDER_NAME`
+- `listing_id` — Listing (joins to listings).  
+  expr: `LISTING_ID`
+
+**metrics**
+
+- `customer_portfolios` — Distinct agent and customer portfolios.  
+  expr: `count(distinct case when CUSTOMER_ID is not null then to_varchar(AGENT_ID) || '-' || to_varchar(CUSTOMER_ID) end)`
+- `distinct_folder_listings` — Distinct listings in the folders in the filter.  
+  expr: `count(distinct LISTING_ID)`
+- `folder_listing_count` — Listing placements in folders.  
+  expr: `sum(FOLDER_LISTING_COUNT)`
 
 ## listings  →  `REALPLUS.SEMANTIC.LISTINGS`
 
@@ -423,6 +508,58 @@ Primary key: ["LISTING_ID","POI_ID"]
 - `nearby_median_closing_price` — Median closing price near one place. Split by listing_type.  
   expr: `median(case when STATUS = 'Closed' and CLOSING_PRICE > 0 and not IS_NON_MARKET_SALE and not IS_BULK_BUILDING_SALE then CLOSING_PRICE end)`
 
+## new_matches  →  `REALPLUS.SEMANTIC.NEW_MATCHES`
+
+One row per listing a saved search matched (new listing, price, status or monthly charges change), from SQL and the new-match event log combined. Synonyms: new match, matches, listing alerts, saved search matches.
+Primary key: ["NEW_MATCH_RECORD_ID"]
+
+**dimensions**
+
+- `batch_type` — Daily or Hot prospect batch, or Unknown.  
+  expr: `BATCH_TYPE`
+- `is_new_listing_match` — True when a new listing triggered the match.  
+  expr: `IS_NEW_LISTING_MATCH`
+- `is_pending_for_agent` — True while the match is still waiting for the agent.  
+  expr: `IS_PENDING_FOR_AGENT`
+- `is_price_change_match` — True when a price change triggered the match.  
+  expr: `IS_PRICE_CHANGE_MATCH`
+- `listing_id` — Matched listing (joins to listings).  
+  expr: `LISTING_ID`
+- `matched_date` — Date of the match (New York time).  
+  expr: `MATCHED_DATE`
+- `matched_month` — Month of the match.  
+  expr: `date_trunc('month', MATCHED_DATE)`
+- `match_date_quality` — OK, FUTURE_REVIEW, PRIOR_TO_2000_REVIEW or MISSING.  
+  expr: `MATCH_DATE_QUALITY`
+- `match_evidence` — SQL_AND_EVENT, SQL_ONLY or EVENT_ONLY: which source recorded the match.  
+  expr: `MATCH_EVIDENCE`
+- `new_match_record_id` — New match identifier.  
+  expr: `NEW_MATCH_RECORD_ID`
+- `primary_match_reason` — First reason of the match: New Listing, Newly Added, Price Change, Status Change, MaintCC Change (monthly charges) or Unknown.  
+  expr: `PRIMARY_MATCH_REASON`
+- `saved_search_id` — Saved search that matched (joins to saved_searches).  
+  expr: `SAVED_SEARCH_ID`
+
+**facts**
+
+- `price_at_match` — Listing price when it matched, USD (monthly rent for rentals).  
+  expr: `PRICE_AT_MATCH`
+
+**metrics**
+
+- `listings_matched` — Distinct listings matched by saved searches.  
+  expr: `count(distinct LISTING_ID)`
+- `new_listing_matches` — Matches triggered by a new listing.  
+  expr: `count_if(IS_NEW_LISTING_MATCH)`
+- `new_match_count` — New matches. Synonyms: matches, number of new matches.  
+  expr: `sum(MATCH_COUNT)`
+- `pending_new_matches` — Matches still waiting for the agent today.  
+  expr: `count_if(IS_PENDING_FOR_AGENT and not IS_DELETED_IN_SOURCE)`
+- `price_change_matches` — Matches triggered by a price change.  
+  expr: `count_if(IS_PRICE_CHANGE_MATCH)`
+- `searches_with_matches` — Distinct saved searches with a match.  
+  expr: `count(distinct SAVED_SEARCH_ID)`
+
 ## places  →  `REALPLUS.SEMANTIC.NYC_POIS`
 
 One row per place or area in NYC: city places (NYC Open Data) and businesses (Overture Maps). Synonyms: points of interest, POI, amenities.
@@ -451,6 +588,42 @@ Primary key: ["POI_ID"]
 
 - `place_count` — Number of places.  
   expr: `count(POI_ID)`
+
+## portfolio_folders  →  `REALPLUS.SEMANTIC.PORTFOLIO_FOLDERS`
+
+One row per custom folder an agent created in his own portfolio or in a customer portfolio, with how many listings it holds. Synonyms: folders, custom folders, portfolio folders.
+Primary key: ["FOLDER_ID"]
+
+**dimensions**
+
+- `agent_id` — Agent who owns the folder (joins to agents).  
+  expr: `AGENT_ID`
+- `created_date` — Date the folder was created.  
+  expr: `CREATED_DATE`
+- `created_month` — Month the folder was created.  
+  expr: `date_trunc('month', CREATED_DATE)`
+- `folder_id` — Folder identifier.  
+  expr: `FOLDER_ID`
+- `folder_name` — Folder name the agent typed.  
+  expr: `FOLDER_NAME`
+- `folder_owner` — Customer (folder in a customer portfolio) or Agent (agent's own portfolio).  
+  expr: `FOLDER_OWNER`
+
+**facts**
+
+- `listings` — Listings in the folder.  
+  expr: `LISTINGS`
+
+**metrics**
+
+- `agents_with_folders` — Agents with at least one custom folder.  
+  expr: `count(distinct AGENT_ID)`
+- `folders_with_listings` — Custom folders holding at least one listing.  
+  expr: `count_if(LISTINGS > 0)`
+- `folder_count` — Custom folders. Synonyms: number of folders.  
+  expr: `count(FOLDER_ID)`
+- `listings_in_custom_folders` — Listings in custom folders (a listing in two folders counts twice).  
+  expr: `sum(LISTINGS)`
 
 ## price_changes  →  `REALPLUS.SEMANTIC.PRICE_CHANGES`
 
@@ -491,6 +664,110 @@ Primary key: ["CHANGE_ID"]
   expr: `count_if(not IS_REPEAT)`
 - `price_cut_count` — Real price or rent cuts. Synonyms: price drops, reductions.  
   expr: `count_if(not IS_REPEAT and CHANGE in ('Price cut', 'Rent cut'))`
+
+## saved_searches  →  `REALPLUS.SEMANTIC.SAVED_SEARCHES`
+
+One row per saved search an agent keeps for a customer or for himself, current state, with its listing type, alerts, buyer-interest disclosure and (for searches the buyer-interest job indexes) parsed price and bedroom ranges. Synonyms: saved search, search alerts, buyer criteria, customer searches.
+Primary key: ["SAVED_SEARCH_ID"]
+
+**dimensions**
+
+- `agent_id` — Agent who owns the search (joins to agents).  
+  expr: `AGENT_ID`
+- `company_name` — Brokerage of the owning agent.  
+  expr: `COMPANY_NAME`
+- `created_date` — Date the search was created (New York time).  
+  expr: `CREATED_DATE`
+- `created_month` — Month the search was created.  
+  expr: `date_trunc('month', CREATED_DATE)`
+- `effective_disclosure_level` — Buyer-interest disclosure of the search: 0 = not disclosed, 1 or 2 = disclosed to listing agents (lower of agent and search level; 0 when the company lacks the feature).  
+  expr: `EFFECTIVE_DISCLOSURE_LEVEL`
+- `emails_customer_new_matches` — True when new matches are e-mailed to the customer.  
+  expr: `EMAILS_CUSTOMER_NEW_MATCHES`
+- `has_parsed_criteria` — True when price and bedroom ranges are known (searches indexed by the buyer-interest job).  
+  expr: `HAS_PARSED_CRITERIA`
+- `is_active` — True when the search is not deleted and is shown to the agent.  
+  expr: `IS_ACTIVE`
+- `is_ad_hoc` — True for unnamed searches that were run but never saved; leave them out of saved search counts.  
+  expr: `IS_AD_HOC`
+- `last_used_date` — Latest of created, edited and run dates.  
+  expr: `LAST_USED_DATE`
+- `listing_type` — Sale, Rental, Building or Other.  
+  expr: `LISTING_TYPE`
+- `posts_new_matches_to_portal` — True when new matches are posted to the customer portal.  
+  expr: `POSTS_NEW_MATCHES_TO_PORTAL`
+- `saved_search_id` — Saved search identifier.  
+  expr: `SAVED_SEARCH_ID`
+- `saved_search_name` — Name the agent gave the search; empty for ad-hoc searches.  
+  expr: `SAVED_SEARCH_NAME`
+- `search_owner` — Customer (search kept for a customer) or Agent (the agent's own search).  
+  expr: `SEARCH_OWNER`
+- `tracks_new_matches` — True when the search collects new matches.  
+  expr: `TRACKS_NEW_MATCHES`
+
+**facts**
+
+- `bedrooms_min` — Minimum bedrooms the search asks for; parsed searches only.  
+  expr: `BEDROOMS_MIN`
+- `price_max` — Highest price the search asks for, USD (monthly rent for rentals); parsed searches only. Synonyms: budget, max price.  
+  expr: `PRICE_MAX`
+- `price_min` — Lowest price the search asks for, USD (monthly rent for rentals); parsed searches only.  
+  expr: `PRICE_MIN`
+- `version_count` — Hidden version or run copies of the search (one per reSOURCE run or save).  
+  expr: `VERSION_COUNT`
+
+**metrics**
+
+- `agents_with_saved_searches` — Agents with at least one active saved search.  
+  expr: `count(distinct case when IS_ACTIVE and not IS_AD_HOC then AGENT_ID end)`
+- `customer_saved_searches` — Active saved searches kept for customers.  
+  expr: `count_if(IS_ACTIVE and not IS_AD_HOC and SEARCH_OWNER = 'Customer')`
+- `median_search_max_price` — Median highest price buyers search for (parsed searches only). Always split by listing_type.  
+  expr: `median(case when IS_ACTIVE and not IS_AD_HOC then PRICE_MAX end)`
+- `recently_used_saved_searches` — Active saved searches created, edited or run within the last year.  
+  expr: `count_if(IS_ACTIVE and not IS_AD_HOC and LAST_USED_DATE >= dateadd(year, -1, current_date()))`
+- `saved_search_count` — Active saved searches (not deleted, shown to the agent, not ad-hoc). Synonyms: number of saved searches, how many saved searches.  
+  expr: `count_if(IS_ACTIVE and not IS_AD_HOC)`
+- `searches_open_to_buyer_interest` — Active saved searches whose buyer may be disclosed to listing agents.  
+  expr: `count_if(IS_ACTIVE and not IS_AD_HOC and EFFECTIVE_DISCLOSURE_LEVEL > 0)`
+- `searches_tracking_new_matches` — Active saved searches that collect new matches.  
+  expr: `count_if(IS_ACTIVE and not IS_AD_HOC and TRACKS_NEW_MATCHES)`
+
+## saved_search_runs  →  `REALPLUS.SEMANTIC.SAVED_SEARCH_RUNS`
+
+One row per run of a saved search (reSOURCE since 2021-04, Prodigy since 2026-01) with the result count; marks runs where the criteria changed. Synonyms: saved search runs, saved search history, search executions.
+Primary key: ["SEARCH_DOCUMENT_ID"]
+
+**dimensions**
+
+- `application` — reSOURCE or Prodigy.  
+  expr: `APPLICATION`
+- `is_criteria_change` — True when the criteria differ from the previous run of the same search (first run counts as a change).  
+  expr: `IS_CRITERIA_CHANGE`
+- `listing_type` — Sale, Rental, Building or Other.  
+  expr: `LISTING_TYPE`
+- `run_date` — Date of the run (New York time).  
+  expr: `EXECUTED_DATE_LOCAL`
+- `run_month` — Month of the run.  
+  expr: `date_trunc('month', EXECUTED_DATE_LOCAL)`
+- `saved_search_id` — Saved search that ran (joins to saved_searches).  
+  expr: `SAVED_SEARCH_ID`
+
+**facts**
+
+- `result_listing_count` — Listings the run returned.  
+  expr: `RESULT_LISTING_COUNT`
+
+**metrics**
+
+- `criteria_changes` — Runs whose criteria changed since the previous run of the same search (edits).  
+  expr: `count_if(IS_CRITERIA_CHANGE and RUN_SEQUENCE > 1)`
+- `median_results_per_run` — Median listings returned per run.  
+  expr: `median(RESULT_LISTING_COUNT)`
+- `saved_searches_run` — Distinct saved searches that ran.  
+  expr: `count(distinct SAVED_SEARCH_ID)`
+- `saved_search_run_count` — Saved search runs.  
+  expr: `sum(RUN_COUNT)`
 
 ## search_demand  →  `REALPLUS.SEMANTIC.SEARCH_DEMAND`
 
@@ -565,6 +842,14 @@ Primary key: ["LISTING_ID","TRANSITION_SEQUENCE"]
 
 ## Relationships
 
+- ?(?) → ?(?)
+- ?(?) → ?(?)
+- ?(?) → ?(?)
+- ?(?) → ?(?)
+- ?(?) → ?(?)
+- ?(?) → ?(?)
+- ?(?) → ?(?)
+- ?(?) → ?(?)
 - ?(?) → ?(?)
 - ?(?) → ?(?)
 - ?(?) → ?(?)

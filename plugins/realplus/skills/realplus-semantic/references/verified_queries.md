@@ -83,3 +83,27 @@ Q: What is the median asking rent by bedrooms within 1 km of the Dollar Tree on 
 ```sql
 SELECT l.bedroom_band, COUNT(*) AS active_listings, MEDIAN(l.asking_price) AS median_asking_rent FROM listings AS l CROSS JOIN (SELECT latitude, longitude FROM places WHERE place_name ILIKE '%Dollar Tree%' AND place_address ILIKE '%Knickerbocker%' AND borough = 'Brooklyn') AS p WHERE l.is_on_market AND l.listing_type = 'Rental' AND l.asking_price BETWEEN 500 AND 100000 AND HAVERSINE(p.latitude, p.longitude, l.latitude, l.longitude) <= 1 GROUP BY l.bedroom_band ORDER BY l.bedroom_band
 ```
+
+## saved_searches_by_company
+
+Q: How many active saved searches does each brokerage have, for customers and in total?
+
+```sql
+SELECT company_name, COUNT_IF(search_owner = 'Customer') AS customer_saved_searches, COUNT(*) AS saved_searches FROM saved_searches WHERE is_active AND NOT is_ad_hoc GROUP BY company_name ORDER BY saved_searches DESC
+```
+
+## new_matches_by_month_and_reason
+
+Q: How many new matches did saved searches produce per month in 2026, by reason?
+
+```sql
+SELECT matched_month, primary_match_reason, COUNT(*) AS new_matches FROM new_matches WHERE matched_date >= '2026-01-01' AND match_date_quality = 'OK' GROUP BY matched_month, primary_match_reason ORDER BY matched_month, new_matches DESC
+```
+
+## listings_with_most_buyer_interest
+
+Q: Which listings on the market have the most interested buyers?
+
+```sql
+SELECT l.address, l.unit, l.neighborhood, l.listing_type, l.asking_price, b.interested_buyers, b.buyers_with_action, b.buyers_saved_search_match FROM buyer_interest AS b JOIN listings AS l ON b.listing_id = l.listing_id WHERE l.is_on_market AND b.interested_buyers > 0 ORDER BY b.interested_buyers DESC LIMIT 20
+```
