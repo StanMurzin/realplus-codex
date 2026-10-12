@@ -97168,6 +97168,9 @@ var init_proxy = __esm({
   }
 });
 
+// ../codex_plugin/entry.mjs
+import { readFileSync } from "node:fs";
+
 // server/config.json
 var config_default = {
   server_url: "https://usullub-ntb72697.snowflakecomputing.com/api/v2/databases/REALPLUS/schemas/AI/mcp-servers/REALPLUS_MCP",
@@ -97189,6 +97192,31 @@ process.argv = [
   "--static-oauth-client-metadata",
   JSON.stringify(config_default.client_metadata)
 ];
+var icons = [["icon-64.png", "64x64"], ["icon.png", "256x256"]].flatMap(([file2, sizes]) => {
+  try {
+    const png = readFileSync(new URL(`./assets/${file2}`, import.meta.url)).toString("base64");
+    return [{ src: `data:image/png;base64,${png}`, mimeType: "image/png", sizes: [sizes] }];
+  } catch {
+    return [];
+  }
+});
+if (icons.length) {
+  const write = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (chunk, ...rest) => {
+    const text = typeof chunk === "string" ? chunk : Buffer.isBuffer(chunk) ? chunk.toString("utf8") : null;
+    if (text && text.includes('"serverInfo"')) {
+      try {
+        const message = JSON.parse(text);
+        if (message.result?.serverInfo && !message.result.serverInfo.icons) {
+          message.result.serverInfo.icons = icons;
+          return write(JSON.stringify(message) + "\n", ...rest);
+        }
+      } catch {
+      }
+    }
+    return write(chunk, ...rest);
+  };
+}
 await Promise.resolve().then(() => (init_proxy(), proxy_exports));
 /*! Bundled license information:
 
