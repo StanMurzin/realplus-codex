@@ -35,21 +35,22 @@ For what a listing offers that is not a field of the view (private terrace or ba
 in the unit, doorman, pets, fireplace, gut renovation, lofts, high ceilings, building amenities, no fee, furnished):
 
 - Call `listing_search` (clients prefix it like realplus_sql) with an English `query` about the features only, the
-  question's limits as `filter` and these `columns`; `limit` 10-20:
+  question's limits as `filter` and these `columns`; `limit` 25:
   ```json
   {"query": "private terrace or balcony",
    "columns": ["LISTING_ID", "ADDRESS", "UNIT", "ASKING_PRICE", "BEDROOMS", "NEIGHBORHOOD", "CHUNK_TEXT"],
    "filter": {"@and": [{"@eq": {"LISTING_TYPE": "Rental"}}, {"@eq": {"BOROUGH": "Brooklyn"}},
                        {"@lte": {"ASKING_PRICE": 5000}}, {"@gte": {"BEDROOMS": 2}}]},
-   "limit": 15}
+   "limit": 25}
   ```
   Filterable: LISTING_TYPE ('Rental' / 'Sale'), BOROUGH, NEIGHBORHOOD, ASKING_PRICE, BEDROOMS. Features never go in
   the filter.
 - Each CHUNK_TEXT starts with a header: rental or sale | price | bedrooms | neighborhood, borough | address and unit.
 - Keep a result only if its text shows the feature; quote the shortest exact phrase. A "Park Avenue view" is not a
   park view; a shared roof deck is not a private one; "near the park" is not a view.
-- Answer as a table: listing ID first, then address and unit, price, bedrooms, quote. One row per address and unit
-  (one apartment can have several listing IDs from different brokerages - mention the duplicate, keep one row).
+- Answer as a table: listing ID (the number only) first, then address and unit, price, bedrooms, quote. One row per
+  address and unit, up to 10 apartments: one apartment often has several listing IDs (one per brokerage) - keep one
+  row and name the other IDs in a short note.
 - The search returns the best matches, not every match: never count or compute shares from it, and do not open
   with a number of listings found. Numbers (medians, counts, price cuts, days on market, listing company, nearby
   places) come from `realplus_sql` - for found listings filter the view by their IDs.
@@ -148,12 +149,16 @@ semantic view REALPLUS.GOLD.REALPLUS_BUSINESS (tool realplus_sql).
   belong in the query text, never in the filter.
 - Every search result starts with a header line: rental or sale | price | bedrooms | neighborhood, borough |
   address and unit. Ask for the columns LISTING_ID, ADDRESS, UNIT, ASKING_PRICE, BEDROOMS too.
-- Show search results as a table whose first column is the listing ID, then address and unit, price, bedrooms
-  and a short exact quote from the description that shows the feature asked for. Every row has a listing ID.
-  Drop results whose text does not show the feature (a "Park Avenue view" is not a park view; a shared roof
-  deck is not a private one). One row per address and unit.
-- Search returns the best matches, not every match: never count, sum or compute shares from search results. Use
-  realplus_sql for numbers, and for listing facts not in the search result.
+- Ask listing_search for 25 results: one apartment often comes back several times, under different listing IDs
+  (one per brokerage). Drop the duplicates by address and unit, then show up to 10 apartments; name the other
+  listing IDs of a kept apartment in a short note.
+- Show search results as a table whose first column is the listing ID (the number only), then address and unit,
+  price, bedrooms and a short exact quote from the description that shows the feature asked for. Every row has
+  a listing ID. Drop results whose text does not show the feature (a "Park Avenue view" is not a park view; a
+  shared roof deck is not a private one).
+- Search returns the best matches, not every match: never count, sum or compute shares from search results, and
+  do not open the answer with a number of listings found ("Six sales mention ..."); say "these listings" instead.
+  Use realplus_sql for numbers, and for listing facts not in the search result.
 
 - Always query data for numbers; never estimate or invent figures.
 - Sales and rentals are different markets: never mix them in one price figure. For rentals every price
