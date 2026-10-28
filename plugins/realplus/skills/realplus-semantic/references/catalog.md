@@ -295,9 +295,11 @@ Primary key: ["LISTING_ID"]
   expr: `LONGITUDE`
 - `neighborhood` — Neighborhood, for example Upper West Side (UWS), Chelsea, Williamsburg. Synonyms: area, district.  
   expr: `NEIGHBORHOOD`
-- `ownership_type` — Source ownership type code (numeric codes, not decoded).  
+- `ownership_type` — Source ownership type code (24, 25, 26, 27, 225); use ownership_type_name.  
   expr: `OWNERSHIP_TYPE`
-- `property_type` — Source property type code, for example CONDO, COOP, TOWNHOUSE, RNTL.  
+- `ownership_type_name` — Condo, Co-op, Condop, Townhouse or Rental building. Filled for almost every listing: use it for condo / co-op / townhouse questions. Synonyms: condo, co-op, coop, condop, townhouse, home type, building type.  
+  expr: `OWNERSHIP_TYPE_NAME`
+- `property_type` — Source property type code (CONDO, COOP, TOWNHOUSE, RNTL); empty for most listings - use ownership_type_name.  
   expr: `PROPERTY_TYPE`
 - `source_status` — Status text as the source system writes it.  
   expr: `SOURCE_STATUS`
