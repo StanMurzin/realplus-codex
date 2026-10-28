@@ -2,8 +2,9 @@
 
 One plugin, two apps. It answers questions about RealPlus New York real estate data (listings, asking and closing
 prices, rents, closed deals, price cuts, agents, brokerages, customer portal activity, searches, listings near
-subway stations, courthouses, schools, parks, grocery stores, cafes and gyms): the assistant runs
-read-only SQL over the Snowflake semantic view `REALPLUS.GOLD.REALPLUS_BUSINESS` and follows the RealPlus answer rules
+subway stations, courthouses, schools, parks, grocery stores, cafes and gyms, and what listing descriptions say -
+private terrace, views, washer/dryer, doorman, pets, fireplace): the assistant runs read-only SQL over the Snowflake
+semantic view `REALPLUS.GOLD.REALPLUS_BUSINESS`, searches the descriptions of on-market listings and follows the RealPlus answer rules
 shipped with the plugin as a skill.
 
 You need a Snowflake user for the RealPlus account; without one the plugin can't read anything.
@@ -36,7 +37,7 @@ Claude Code and Claude Desktop need Node.js 20+ (`node --version`).
 ## First question
 
 Restart the app, then ask, for example: *How many sales and rentals are on the market?* or *Show the 10 most
-expensive sales near the Brooklyn Supreme Court*. The first time, a browser
+expensive sales near the Brooklyn Supreme Court* or *Brooklyn rentals under $5,000 with a private terrace*. The first time, a browser
 window opens: sign in with your Snowflake user. You stay signed in for 90 days.
 
 ## Update / remove
